@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel='stylesheet' href='css/bootstrap.css' type='text/css' media='all' />
+<script type='text/javascript' src='http://code.jquery.com/jquery-1.8.2.min.js'></script>
+<script type='text/javascript' src='lib/underscore-min.js'></script>
+<script type='text/javascript' src='lib/backbone-min.js'></script>
+<script type='text/javascript' src=''></script>
+<!--<script type='text/javascript' src='/js/bootstrap.min.js'></script>-->
+</head>
+
+<body style="margin: 50px auto; width: 960px;">	
+	
+	<div id='new-status'>
+		<input type='text' name='search' id='search' />
+		<button id='cm-btn' class="btn btn-primary" type="button">Click me</button>
+	</div>
+
+	<div id='statuses' style='margin-top:30px;'>
+		<ul></ul>
+	</div>
+</body>
+
+<script>
+/*
+	$(function(){
+	// 1)
+		// typical use of event listener and ajax request in jquery;
+		// problem with this design is that all stuff are done in this single block of code;
+		// and everything happens inside the jQuery ready function, meaning this block of code
+		// gets parsed after the DOM is completely rendered
+
+		$( '#cm-btn' ).on('click', function(e) {							// 1. listens for events
+	        e.preventDefault();
+
+	        $.ajax({														// 2. ajax request starts here
+	            url: 'status.php',
+	            type: 'POST',												// 3. network manipulation
+	            dataType: 'json',
+	            data: { text: $( '#search' ).val() },						// 4. DOM traversing for data
+	            success: function(data) {
+	                $( '#statuses' ).append('<li>' + data.text + '</li>');	// 5. DOM insertion
+	                $( '#search' ).val('');									// 6. DOM manipulation
+	            }
+	        });    
+	    });
+	})	
+
+
+
+	// 2)
+		// first task is to separate Ajax and DOM by wrapping the ajax request inside a function outside
+		// of the jquery ready function
+		function addStatus( options ) {
+			$.ajax({														
+	            url: 'status.php',
+	            type: 'POST',												
+	            dataType: 'json',
+	            data: { text: options.text },						
+	            success: options.success
+	        });    
+		}
+		$(function() {
+			$( '#cm-btn' ).on('click', function(e) {
+		        e.preventDefault();
+		        addStatus({
+		        	text 	: $( '#search' ).val(),
+		        	success	: function(data){
+		        		$( '#statuses' ).append('<li>' + data.text + '</li>');	
+	                	$( '#search' ).val('');											
+		        	}
+		        });
+		    })
+		})
+
+
+	
+	// 3)	
+		// model
+		var Statuses = function () {};
+		Statuses.prototype.add = function (options) {
+			$.ajax({														
+	            url: 'status.php',
+	            type: 'POST',												
+	            dataType: 'json',
+	            data: { text: options.text },						
+	            success: options.success
+	        });    
+		};
+		// view
+		var NewStatusView = function (options) {
+			var statuses = options.statuses;
+
+			$( '#cm-btn' ).on('click', function(e) {
+		        e.preventDefault();
+		        statuses.add({
+		        	text 	: $( '#search' ).val(),
+		        	success	: function(data){
+		        		$( '#statuses' ).append('<li>' + data.text + '</li>');	
+	                	$( '#search' ).val('');											
+		        	}
+		        });
+		    })
+		};
+
+		$(function() {
+
+			var statuses = new Statuses(); 					// this object contains the 'add' function to add statuses
+			new NewStatusView({ statuses : statuses });		// 
+		})
+
+
+	// 4)	
+		// model
+		var Statuses = function () {};
+		Statuses.prototype.add = function (options) {
+			$.ajax({														
+	            url: 'status.php',
+	            type: 'POST',												
+	            dataType: 'json',
+	            data: { text: options.text },						
+	            success: options.success
+	        });    
+		};
+
+		// view
+		var NewStatusView = function (options) {
+			this.statuses = options.statuses;
+			var add = $.proxy(this.addStatus, this);
+			$( '#cm-btn' ).on('click', add);			
+		};
+
+		NewStatusView.prototype.addStatus = function (e) {
+			e.preventDefault();
+			var that = this;
+	        this.statuses.add({
+	        	text 	: $( '#search' ).val(),
+	        	success	: function(data){
+	        		that.appendStatus(data.text);
+                	that.clearInput();									
+	        	}
+	        });
+		};
+		NewStatusView.prototype.appendStatus = function (text) {
+			$( '#statuses' ).append('<li>' + text + '</li>');	
+		};
+		NewStatusView.prototype.clearInput = function (text) {
+			$( '#search' ).val('');
+		};
+
+		$(function() {
+
+			var statuses = new Statuses(); 					// this object contains the 'add' function to add statuses
+			new NewStatusView({ statuses : statuses });		// 
+		})	
+
+
+	// 5) Using Backbone & Underscore :: Events
+	
+		var events = _.clone(Backbone.Events);
+
+		// model
+		var Statuses = function () {};
+		Statuses.prototype.add = function (text) {
+			$.ajax({														
+	            url: 'status.php',
+	            type: 'POST',												
+	            dataType: 'json',
+	            data: { text: text },						
+	            success: function (data) {
+	            	events.trigger('status:add', data.text);
+	            }
+	        });    
+		};
+
+		// view for 
+		var NewStatusView = function (options) {
+			this.statuses = options.statuses;
+			this.el	= options.el;
+
+			events.on('status:add', this.clearInput, this);
+
+			var add = $.proxy(this.addStatus, this);
+			this.$('button').on('click', add);			
+		};
+		NewStatusView.prototype.addStatus = function (e) {
+			e.preventDefault();
+	        this.statuses.add( this.el.find( '#search' ).val() );
+		};		
+		NewStatusView.prototype.clearInput = function (text) {
+			this.$( '#search' ).val('');
+		};
+		NewStatusView.prototype.$ = function(selector) {
+			return this.el.find(selector);
+		}
+
+
+		// view for 
+		var StatusView = function(options) {
+			this.el = options.el;
+			events.on('status:add', this.appendStatus, this);
+		};
+		StatusView.prototype.appendStatus = function (text) {
+			this.$('ul').append('<li>' + text + '</li>');	
+		};
+		StatusView.prototype.$ = function(selector) {
+			return this.el.find(selector);
+		}
+
+		// bootstrapping
+		$(function() {
+
+			var statuses = new Statuses(); 										// this object contains the 'add' function to add statuses
+			new NewStatusView({ el: $('#new-status'), statuses : statuses });	// 
+			new StatusView({ el: $('#statuses') });
+		})		
+*/
+
+	// 6) Using Backbone & Underscore :: Views
+	
+		var events = _.clone(Backbone.Events);
+
+		// model
+		var Status = Backbone.Model.extend({
+			url: 'status.php'
+		});
+
+		var Statuses = function () {};
+		Statuses.prototype.add = function (text) {
+			var status = new Status();
+			status.save({ text: text }, {
+				success: function(model, data) {
+					events.trigger('status:add', data.text);
+				}
+			});    
+		};
+
+		// view for 
+		var NewStatusView = Backbone.View.extend({
+			initialize: function(options){
+				this.statuses 	= options.statuses;
+
+				events.on('status:add', this.clearInput, this);
+
+				var add = $.proxy(this.addStatus, this);
+				this.$('button').on('click', add);		
+			},
+			addStatus:  function (e) {
+				e.preventDefault();
+		        this.statuses.add( this.$( '#search' ).val() );
+			},
+			clearInput: function (text) {
+				this.$( '#search' ).val('');
+			}
+		});	
+
+		// view for 
+		var StatusView = Backbone.View.extend({
+			initialize: function(options){
+				events.on('status:add', this.appendStatus, this);		
+			},
+			appendStatus: function (text) {
+				this.$('ul').append('<li>' + text + '</li>');	
+			}
+		});
+
+
+
+		// bootstrapping
+		$(function() {
+
+			var statuses = new Statuses(); 										// this object contains the 'add' function to add statuses
+			new NewStatusView({ el: $('#new-status'), statuses : statuses });	// 
+			new StatusView({ el: $('#statuses') });
+		})			
+	    
+
+</script>
+</html>	
